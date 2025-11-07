@@ -1,17 +1,348 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Titolo della pagina</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Laghetto visto dall'alto — animazione statica</title>
+<style>
+  :root{
+    --pond-width: 100vw;
+    --pond-height: 100vh;
+    --water-color-1: #0f4c75;
+    --water-color-2: #1b98e0;
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    background: linear-gradient(180deg,#08121a 0%, #071927 50%, #0b2230 100%);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* Contenitore centrato */
+  .stage{
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    box-sizing:border-box;
+  }
+
+  /* Il "laghetto" (SVG) */
+  .pond {
+    width:min(900px, 95vw);
+    height:min(600px, 70vh);
+    position:relative;
+    border-radius:40px;
+    overflow:hidden;
+    box-shadow: 0 30px 80px rgba(2,18,30,0.7), inset 0 10px 30px rgba(255,255,255,0.02);
+    background:
+      radial-gradient(80% 60% at 30% 30%, rgba(255,255,255,0.03), transparent 20%),
+      linear-gradient(180deg, rgba(255,255,255,0.02), transparent 30%);
+  }
+
+  /* 'Caustiche' animate: lieve shimmering */
+  .caustics {
+    position:absolute;
+    inset:0;
+    background-image:
+      radial-gradient(closest-side, rgba(255,255,255,0.02), transparent 40%),
+      radial-gradient(closest-side, rgba(255,255,255,0.015), transparent 40%);
+    background-size: 220px 120px, 180px 90px;
+    mix-blend-mode: overlay;
+    opacity:0.9;
+    animation: floatCaustics 10s linear infinite;
+    pointer-events:none;
+  }
+
+  @keyframes floatCaustics{
+    0%{ transform: translateY(0) translateX(0) rotate(0deg); opacity:0.9; }
+    50%{ transform: translateY(-10px) translateX(6px) rotate(2deg); opacity:1; }
+    100%{ transform: translateY(0) translateX(0) rotate(0deg); opacity:0.9; }
+  }
+
+  /* Superficie dell'acqua (SVG con gradient) */
+  .water-svg { width:100%; height:100%; display:block; }
+
+  /* Ripple container: crea cerchi che si espandono */
+  .ripples { position:absolute; inset:0; pointer-events:auto; }
+
+  .ripple {
+    position:absolute;
+    border: 2px solid rgba(255,255,255,0.25);
+    border-radius:50%;
+    transform: translate(-50%,-50%) scale(0);
+    animation: rippleAnim 2s ease-out forwards;
+    pointer-events:none;
+    mix-blend-mode: screen;
+  }
+  @keyframes rippleAnim {
+    0% { opacity:0.9; transform: translate(-50%,-50%) scale(0.06); }
+    60% { opacity:0.35; }
+    100% { opacity:0; transform: translate(-50%,-50%) scale(1.6); }
+  }
+
+  /* Ninfee (floating) */
+  .lily {
+    position:absolute;
+    width:90px;
+    height:60px;
+    transform-origin:center;
+    pointer-events:none;
+    filter: drop-shadow(0 8px 10px rgba(2,10,20,0.45));
+    animation: floatY linear infinite, floatRotate linear infinite;
+  }
+  @keyframes floatY {
+    0% { transform: translateY(0) rotate(var(--r,0deg)); }
+    50% { transform: translateY(-8px) rotate(calc(var(--r,0deg) + 2deg)); }
+    100% { transform: translateY(0) rotate(var(--r,0deg)); }
+  }
+  @keyframes floatRotate {
+    0% { transform: translateY(0) rotate(var(--r,0deg)); }
+    50% { transform: translateY(-6px) rotate(calc(var(--r,0deg) - 2deg)); }
+    100% { transform: translateY(0) rotate(var(--r,0deg)); }
+  }
+
+  /* Pesci (semplici) */
+  .fish {
+    position:absolute;
+    width:36px;
+    height:14px;
+    border-radius:14px;
+    background: linear-gradient(90deg, rgba(255,192,0,0.95), rgba(255,120,90,0.95));
+    transform-origin:center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+    pointer-events:none;
+    mix-blend-mode: screen;
+    animation: swim linear infinite;
+  }
+
+  /* varie taglie per i pesci */
+  .fish.small { width:26px; height:10px; }
+  .fish.big { width:52px; height:20px; }
+
+  /* nuoto: viene sovrascritto via inline style-duration per variare la velocità */
+  @keyframes swim {
+    0% { transform: translateX(-10%) translateY(0) rotate(0deg); opacity:0; }
+    5% { opacity:1; }
+    50% { transform: translateX(55vw) translateY(-20px) rotate(3deg); }
+    100% { transform: translateX(110vw) translateY(10px) rotate(6deg); opacity:0; }
+  }
+
+  /* Controlli/legenda minima */
+  .legend {
+    position:absolute;
+    left:14px;
+    bottom:14px;
+    padding:8px 12px;
+    background: rgba(3,12,18,0.45);
+    color:#dff6ff;
+    border-radius:10px;
+    font-size:13px;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  }
+
+  /* Responsive tweaks */
+  @media (max-width:600px){
+    .lily{ width:70px; height:50px; }
+    .fish.big { width:40px; height:16px; }
+  }
+</style>
 </head>
 <body>
+  <div class="stage">
+    <div class="pond" id="pond">
+      <!-- SVG acqua: sfumature + mosso leggero con filtro blur -->
+      <svg class="water-svg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <radialGradient id="g1" cx="30%" cy="25%" r="70%">
+            <stop offset="0%" stop-color="#2fb1ff" stop-opacity="0.18"/>
+            <stop offset="35%" stop-color="#1776a9" stop-opacity="0.22"/>
+            <stop offset="100%" stop-color="#052836" stop-opacity="0.95"/>
+          </radialGradient>
 
-  <h1>
-  __PAPERE!__<br>
-  ...........
-  </h1>
+          <filter id="wavy" x="-20%" y="-20%" width="140%" height="140%">
+            <!-- small turbulence -->
+            <feTurbulence baseFrequency="0.007" numOctaves="2" seed="3" result="noise"/>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="18" xChannelSelector="R" yChannelSelector="G"/>
+          </filter>
 
+          <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="1.2"/>
+          </filter>
+        </defs>
+
+        <!-- base water -->
+        <rect x="0" y="0" width="100%" height="100%" fill="url(#g1)" filter="url(#soft)"></rect>
+
+        <!-- subtle moving waves (duplicato in opacità differente) -->
+        <g opacity="0.16" filter="url(#wavy)" >
+          <rect x="-10" y="-10" width="1020" height="720" fill="#ffffff" opacity="0.06">
+            <animate attributeName="x" dur="24s" values="-10; -20; 0; -10" repeatCount="indefinite"/>
+            <animate attributeName="y" dur="18s" values="-10; 0; -20; -10" repeatCount="indefinite"/>
+          </rect>
+        </g>
+
+      </svg>
+
+      <div class="caustics" aria-hidden="true"></div>
+
+      <!-- container dove JS genererà i ripple circles -->
+      <div class="ripples" id="ripples"></div>
+
+      <!-- alcune ninfee (posizioni e durata gestite da CSS/JS inline) -->
+      <div class="lily" style="left:18%; top:28%; --r:4deg; animation-duration:9s;"></div>
+      <div class="lily" style="left:60%; top:34%; --r:-5deg; animation-duration:11s;"></div>
+      <div class="lily" style="left:45%; top:55%; --r:2deg; animation-duration:13s;"></div>
+      <div class="lily" style="left:75%; top:66%; --r:-8deg; animation-duration:10.5s;"></div>
+
+      <!-- pesci: JS aggiunge animazioni personalizzate (variano durata e delay) -->
+      <div class="fish small" id="fish1" style="left:-8%; top:42%;"></div>
+      <div class="fish big" id="fish2" style="left:-12%; top:60%; background: linear-gradient(90deg,#9be15d,#00e3a6);"></div>
+      <div class="fish small" id="fish3" style="left:-5%; top:30%; background: linear-gradient(90deg,#ff9a9e,#fecfef);"></div>
+
+      <div class="legend">Clicca sull'acqua per creare un'onda • Animazione CSS/SVG/JS</div>
+    </div>
+  </div>
+
+<script>
+/*
+  Script minimale che:
+  - genera ripple (cerchi) al click e automaticamente ogni 2.5s
+  - anima le ninfee renderizzandole come SVG inline (per farle sembrare ninfee)
+  - muove i pesci con differenti velocità (usando animation-duration inline)
+*/
+
+/* --- Helpers --- */
+function makeElem(tag, cls){ const e = document.createElement(tag); if(cls) e.className = cls; return e; }
+
+/* RIPPLE: crea un cerchio che si espande in posizione (x,y) relativa alla bounding rect */
+const ripplesContainer = document.getElementById('ripples');
+const pond = document.getElementById('pond');
+
+function createRipple(clientX, clientY, size=220){
+  const rect = pond.getBoundingClientRect();
+  // posizione relativa all'interno del pond
+  const x = clientX - rect.left;
+  const y = clientY - rect.top;
+
+  const r = makeElem('div','ripple');
+  r.style.left = x + 'px';
+  r.style.top = y + 'px';
+  r.style.width = size + 'px';
+  r.style.height = size + 'px';
+  // colore leggermente variabile per realismo
+  r.style.borderColor = 'rgba(255,255,255,0.22)';
+  ripplesContainer.appendChild(r);
+
+  // rimuovi dopo animazione
+  setTimeout(()=> r.remove(), 2100);
+}
+
+/* Auto ripple random ogni tot secondi (simula vento/pesci) */
+let autoRipples = setInterval(() => {
+  const rect = pond.getBoundingClientRect();
+  const x = rect.left + (Math.random()*rect.width*0.9 + rect.width*0.05);
+  const y = rect.top + (Math.random()*rect.height*0.9 + rect.height*0.05);
+  const s = 160 + Math.random()*240;
+  createRipple(x,y,s);
+}, 2500 + Math.random()*800);
+
+/* click per creare ripple */
+pond.addEventListener('click', (ev)=>{
+  createRipple(ev.clientX, ev.clientY, 160 + Math.random()*200);
+});
+
+/* TOUCH: anche al tocco (per mobile) */
+pond.addEventListener('touchstart', (ev)=>{
+  const t = ev.touches[0];
+  createRipple(t.clientX, t.clientY, 140 + Math.random()*180);
+});
+
+/* --- RENDER NINFEES: disegni SVG semplici posizionati dentro .lily -- */
+function renderLilies(){
+  document.querySelectorAll('.lily').forEach(el=>{
+    // evita ridondanza
+    if (el.dataset.rendered) return;
+    el.dataset.rendered = "1";
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('viewBox','0 0 180 120');
+    svg.setAttribute('width','100%');
+    svg.setAttribute('height','100%');
+    // leaf shape
+    const path = document.createElementNS(svgNS,'path');
+    path.setAttribute('d','M20 60 C30 10, 150 10, 160 60 C150 110, 30 110, 20 60 Z');
+    path.setAttribute('fill','#2b7a3a');
+    path.setAttribute('fill-opacity','0.95');
+    path.setAttribute('stroke','#184d23');
+    path.setAttribute('stroke-width','2');
+    svg.appendChild(path);
+    // small flower
+    const circle = document.createElementNS(svgNS,'circle');
+    circle.setAttribute('cx','85'); circle.setAttribute('cy','50'); circle.setAttribute('r','9');
+    circle.setAttribute('fill','#fde68a');
+    svg.appendChild(circle);
+
+    // shading
+    const shade = document.createElementNS(svgNS,'ellipse');
+    shade.setAttribute('cx','90'); shade.setAttribute('cy','68'); shade.setAttribute('rx','40'); shade.setAttribute('ry','14');
+    shade.setAttribute('fill','rgba(0,0,0,0.06)');
+    svg.appendChild(shade);
+
+    el.appendChild(svg);
+    // random delay to desincronizzare le animazioni
+    const dur = (8 + Math.random()*7).toFixed(2);
+    el.style.animationDuration = dur + 's';
+    el.style.animationTimingFunction = 'ease-in-out';
+  });
+}
+
+/* --- Pesci: variamo durata e delay per dare vita --- */
+function setupFish(){
+  const fishes = document.querySelectorAll('.fish');
+  fishes.forEach((f, i)=>{
+    const baseDur = 8 + Math.random()*12;
+    const dur = baseDur;
+    const delay = Math.random()*6;
+    f.style.animationDuration = dur + 's';
+    f.style.animationDelay = (Math.random()*-4) + 's';
+    // posizioniamo su y in percentuale (già impostato) e invertiamo direzione a volte
+    if (Math.random() > 0.5){
+      // nuota verso destra (default), ma per varietà flip horizontal
+      f.style.transform = 'scaleX(1)';
+    } else {
+      // nuota verso destra ma flip per sembrare che venga da destra -> sinistra
+      f.style.transform = 'scaleX(-1)';
+      // posiziona più a destra e cambia keyframe behavior by mirroring via negative left start
+      // (la keyframe usa translateX relativamente alla viewport, semplificazione)
+    }
+  });
+}
+
+/* inizializza */
+renderLilies();
+setupFish();
+
+/* pulizia quando la finestra non è visibile (per risparmio) */
+document.addEventListener('visibilitychange', ()=>{
+  if (document.hidden){
+    clearInterval(autoRipples);
+  } else {
+    autoRipples = setInterval(() => {
+      const rect = pond.getBoundingClientRect();
+      const x = rect.left + (Math.random()*rect.width*0.9 + rect.width*0.05);
+      const y = rect.top + (Math.random()*rect.height*0.9 + rect.height*0.05);
+      const s = 160 + Math.random()*240;
+      createRipple(x,y,s);
+    }, 2500 + Math.random()*800);
+  }
+});
+</script>
 </body>
 </html>
