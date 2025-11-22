@@ -21,6 +21,10 @@ build/
 dist/
 *.egg-info/
 
+# Git
+.git/
+.gitignore
+
 # Docker
 Dockerfile
 docker-compose.yml
@@ -29,3 +33,9 @@ docker-compose.yml
 *.env
 .env.*
 .envrc
+
+# Not needed inside the image
+README.md
+*.md
+tests/
+docs/

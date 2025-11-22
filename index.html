@@ -1,170 +1,51 @@
-<!doctype html>
-<html lang="it">
+<!DOCTYPE html>
+<html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Palla che segue il mouse</title>
-<style>
-  :root{
-    --ball-size: 48px;
-    --ball-color: #ff5b6e;
-    --shadow: 0 10px 20px rgba(0,0,0,0.15);
-  }
-
-  html,body{
-    height:100%;
-    margin:0;
-    background: linear-gradient(180deg,#0f1724,#071122);
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    overflow:hidden;
-  }
-
-  /* Contenitore opzionale per centro / demo */
-  .stage{
-    position:relative;
-    width:100%;
-    height:100%;
-  }
-
-  /* La palla */
-  .ball{
-    --s: var(--ball-size);
-    width:var(--s);
-    height:var(--s);
-    border-radius:50%;
-    position:fixed; /* fixed mantiene la palla rispetto alla viewport */
-    left:0;
-    top:0;
-    pointer-events:none; /* non interferisce con click etc. */
-    transform: translate3d(-50%,-50%,0); /* partenza centrata */
-    background: radial-gradient(circle at 35% 30%, #ffd1da 0%, var(--ball-color) 40%, #b33 100%);
-    box-shadow: var(--shadow);
-    will-change: transform;
-    display:inline-block;
-    transition: filter 200ms;
-  }
-
-  /* effetto quando si clicca */
-  .ball--active{
-    filter: saturate(120%) brightness(1.05);
-    transform-origin:center;
-  }
-
-  /* pulsazione leggera per dare vita */
-  @keyframes float {
-    0% { transform: translate3d(-50%,-50%,0) translateY(0px); }
-    50% { transform: translate3d(-50%,-50%,0) translateY(-3px); }
-    100% { transform: translate3d(-50%,-50%,0) translateY(0px); }
-  }
-
-  /* classe opzionale per floating */
-  .ball--float{
-    animation: float 3s ease-in-out infinite;
-  }
-</style>
+    <meta charset="UTF-8">
+    <title>ASCII Animation</title>
+    <style>
+        body {
+            background: black;
+            color: lime;
+            font-family: monospace;
+        }
+        pre {
+            font-size: 6px;
+            line-height: 6px;
+        }
+    </style>
 </head>
 <body>
-  <div class="stage" id="stage">
-    <div class="ball" id="ball" aria-hidden="true"></div>
-  </div>
-
-<script>
-/*
-  Ball that follows pointer with smoothing.
-  - Uses pointer events (works for mouse + touch + pen)
-  - Uses requestAnimationFrame for smooth animation
-  - Constrains ball so its center doesn't exit viewport
-*/
-
-// CONFIGURAZIONE
-const config = {
-  lerp: 0.12,          // quanto segue (0 = molto lento, 1 = istantaneo)
-  ballSizePx: 48,      // deve essere in sincronia con --ball-size CSS se lo cambi
-  edgePadding: 0       // margine dal bordo della viewport (px)
-};
-
-const ball = document.getElementById('ball');
-const stage = document.getElementById('stage');
-
-// stato interno
-let target = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-let pos = { x: target.x, y: target.y };
-let rafId = null;
-
-// aggiorna dimensione CSS se cambi config.ballSizePx via JS
-ball.style.setProperty('--ball-size', config.ballSizePx + 'px');
-
-// gestori pointer
-function onPointerMove(e){
-  // supporta sia PointerEvent che TouchEvent-like structure (clientX/Y)
-  const cx = (e.clientX !== undefined) ? e.clientX : (e.touches && e.touches[0] && e.touches[0].clientX) || target.x;
-  const cy = (e.clientY !== undefined) ? e.clientY : (e.touches && e.touches[0] && e.touches[0].clientY) || target.y;
-
-  // limiti: evita che il centro della palla esca dalla viewport
-  const half = config.ballSizePx / 2;
-  const minX = config.edgePadding + half;
-  const minY = config.edgePadding + half;
-  const maxX = window.innerWidth - config.edgePadding - half;
-  const maxY = window.innerHeight - config.edgePadding - half;
-
-  target.x = Math.min(maxX, Math.max(minX, cx));
-  target.y = Math.min(maxY, Math.max(minY, cy));
-
-  // aggiungi classe active quando ci si muove (piccolo feedback)
-  ball.classList.add('ball--active');
-  clearTimeout(ball._inactiveTimeout);
-  ball._inactiveTimeout = setTimeout(()=> ball.classList.remove('ball--active'), 120);
-}
-
-// animazione con lerp (linear interpolation)
-function animate(){
-  // muovi pos verso target
-  pos.x += (target.x - pos.x) * config.lerp;
-  pos.y += (target.y - pos.y) * config.lerp;
-
-  // applica trasformazione (translate3d per GPU)
-  // translate3d usa gli 0,0 come centro: abbiamo impostato transform: translate3d(-50%,-50%,0) in CSS
-  ball.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0) translate(-50%,-50%)`;
-
-  rafId = requestAnimationFrame(animate);
-}
-
-// start/stop handlers
-function start(){
-  if (!rafId) rafId = requestAnimationFrame(animate);
-}
-function stop(){
-  if (rafId) {
-    cancelAnimationFrame(rafId);
-    rafId = null;
-  }
-}
-
-// eventi
-window.addEventListener('pointermove', onPointerMove, { passive: true });
-window.addEventListener('touchmove', onPointerMove, { passive: true });
-
-// fai partire l'animazione
-start();
-
-// aggiorna dimensioni e limiti se la finestra cambia
-window.addEventListener('resize', ()=>{
-  // ricalcola target per rimanere dentro i limiti
-  target.x = Math.min(window.innerWidth - config.ballSizePx/2, Math.max(config.ballSizePx/2, target.x));
-  target.y = Math.min(window.innerHeight - config.ballSizePx/2, Math.max(config.ballSizePx/2, target.y));
-});
-
-// Opzionali: reagisci a click per un piccolo "rimbalzo"
-window.addEventListener('pointerdown', () => {
-  ball.animate([
-    { transform: getComputedStyle(ball).transform + ' scale(1)' },
-    { transform: getComputedStyle(ball).transform + ' scale(0.85)' },
-    { transform: getComputedStyle(ball).transform + ' scale(1)' }
-  ], { duration: 220, easing: 'cubic-bezier(.2,.8,.2,1)' });
-});
-
-// (Facoltativo) abilita la leggera floating animation:
-// ball.classList.add('ball--float');
-</script>
+    <pre id="display"></pre>
+    <script>
+        const display = document.getElementById('display');
+        let frames = [];
+        let i = 0;
+        
+        // Load frames
+        async function load() {
+            let n = 1;
+            while (true) {
+                try {
+                    const r = await fetch(`frames/frame${n}.txt`);
+                    if (!r.ok) break;
+                    frames.push(await r.text());
+                    n++;
+                } catch (e) {
+                    break;
+                }
+            }
+            if (frames.length > 0) animate();
+        }
+        
+        // Animate
+        function animate() {
+            display.textContent = frames[i];
+            i = (i + 1) % frames.length;
+            setTimeout(animate, 1000 / 12); // 12 FPS
+        }
+        
+        load();
+    </script>
 </body>
 </html>
