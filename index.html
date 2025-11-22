@@ -41,7 +41,7 @@
             let n = 1;
             while (true) {
                 try {
-                    const r = await fetch(`frames/f${n}.txt`);
+                    const r = await fetch(`eye/f${n}.txt`);
                     if (!r.ok) break;
                     frames.push(await r.text());
                     n++;
