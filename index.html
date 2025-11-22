@@ -10,7 +10,7 @@
             margin: 0;
             padding: 0;
             background: rgb(255, 255, 255);
-            color: rgb(180, 0, 0);
+            color: rgb(0, 0, 0);
             font-family: 'JetBrains Mono', monospace;
             overflow: hidden;
         }
@@ -30,10 +30,23 @@
         
         // Adjust font size to fit screen
         function resize() {
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            const size = Math.min(w / 240, h / 120);
-            display.style.fontSize = size + 'px';
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+
+        // Count max characters per line in your frames
+        const maxChars = Math.max(...frames.map(f => f.split('\n').reduce((a,b) => Math.max(a, b.length), 0)));
+
+        // Count max lines in your frames
+        const maxLines = Math.max(...frames.map(f => f.split('\n').length));
+
+        // Calculate font size to fit width AND height
+        const sizeW = w / maxChars;
+        const sizeH = h / maxLines;
+        
+        // Use smaller size to make sure it fits both width and height
+        const fontSize = Math.min(sizeW, sizeH);
+
+        display.style.fontSize = fontSize + 'px';
         }
         
         // Load frames
