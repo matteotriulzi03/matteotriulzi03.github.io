@@ -30,23 +30,26 @@
         
         // Adjust font size to fit screen
         function resize() {
-        const w = window.innerWidth;
-        const h = window.innerHeight;
+            // Don't resize if frames aren't loaded yet
+            if (frames.length === 0) return;
+            
+            const w = window.innerWidth;
+            const h = window.innerHeight;
 
-        // Count max characters per line in your frames
-        const maxChars = Math.max(...frames.map(f => f.split('\n').reduce((a,b) => Math.max(a, b.length), 0)));
+            // Count max characters per line in your frames
+            const maxChars = Math.max(...frames.map(f => f.split('\n').reduce((a,b) => Math.max(a, b.length), 0)));
 
-        // Count max lines in your frames
-        const maxLines = Math.max(...frames.map(f => f.split('\n').length));
+            // Count max lines in your frames
+            const maxLines = Math.max(...frames.map(f => f.split('\n').length));
 
-        // Calculate font size to fit width AND height
-        const sizeW = w / maxChars;
-        const sizeH = h / maxLines;
-        
-        // Use smaller size to make sure it fits both width and height
-        const fontSize = Math.min(sizeW, sizeH);
+            // Calculate font size to fit width AND height
+            const sizeW = w / maxChars;
+            const sizeH = h / maxLines;
+            
+            // Use smaller size to make sure it fits both width and height
+            const fontSize = Math.min(sizeW, sizeH);
 
-        display.style.fontSize = fontSize + 'px';
+            display.style.fontSize = fontSize + 'px';
         }
         
         // Load frames
@@ -62,7 +65,10 @@
                     break;
                 }
             }
-            if (frames.length > 0) animate();
+            if (frames.length > 0) {
+                resize(); // Call resize after frames are loaded
+                animate();
+            }
         }
         
         // Animate
@@ -73,7 +79,6 @@
         }
         
         window.addEventListener('resize', resize);
-        resize();
         load();
     </script>
 </body>
