@@ -4,14 +4,20 @@
     <meta charset="UTF-8">
     <title>ASCII Animation</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap');
+        
         body {
+            margin: 0;
+            padding: 0;
             background: black;
             color: lime;
-            font-family: monospace;
+            font-family: 'JetBrains Mono', monospace;
+            overflow: hidden;
         }
         pre {
-            font-size: 6px;
-            line-height: 6px;
+            margin: 0;
+            padding: 0;
+            line-height: 1;
         }
     </style>
 </head>
@@ -22,12 +28,20 @@
         let frames = [];
         let i = 0;
         
+        // Adjust font size to fit screen
+        function resize() {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            const size = Math.min(w / 240, h / 120);
+            display.style.fontSize = size + 'px';
+        }
+        
         // Load frames
         async function load() {
             let n = 1;
             while (true) {
                 try {
-                    const r = await fetch(`frames/frame${n}.txt`);
+                    const r = await fetch(`frames/f${n}.txt`);
                     if (!r.ok) break;
                     frames.push(await r.text());
                     n++;
@@ -42,9 +56,11 @@
         function animate() {
             display.textContent = frames[i];
             i = (i + 1) % frames.length;
-            setTimeout(animate, 1000 / 12); // 12 FPS
+            setTimeout(animate, 1000 / 12);
         }
         
+        window.addEventListener('resize', resize);
+        resize();
         load();
     </script>
 </body>
